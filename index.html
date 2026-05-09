@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>MediTrack — Gestão de Saúde</title>
+  <title>Registos — Gestão de Saúde</title>
   <link rel="stylesheet" href="style.css" />
   <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
 </head>
@@ -14,7 +14,7 @@
     <aside class="sidebar">
       <div class="sidebar-brand">
         <span class="brand-icon">⚕</span>
-        <span class="brand-name">MediTrack</span>
+        <span class="brand-name">Registos</span>
       </div>
 
       <nav class="sidebar-nav">
@@ -64,6 +64,10 @@
               <input type="number" id="med-ampolas" min="0" placeholder="0" />
             </div>
             <div class="form-group">
+              <label for="med-tomas">Nº de Tomas/Dia</label>
+              <input type="number" id="med-tomas" min="0" placeholder="0" />
+            </div>
+            <div class="form-group">
               <label for="med-data">Data do Recibo</label>
               <input type="date" id="med-data" />
             </div>
@@ -105,6 +109,10 @@
             <div class="form-group">
               <label for="hig-num-embalagens">Nº de Embalagens</label>
               <input type="number" id="hig-num-embalagens" min="0" placeholder="0" />
+            </div>
+            <div class="form-group">
+              <label for="hig-uso-dia">Nº de Uso/Dia</label>
+              <input type="number" id="hig-uso-dia" min="0" placeholder="0" />
             </div>
             <div class="form-group">
               <label for="hig-data">Data</label>
