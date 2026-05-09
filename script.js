@@ -18,8 +18,8 @@ let farmaciaRegistos = [];
 let higieneRegistos = [];
 
 const sugestoes = {
-  farmacia: { nome: new Set(), comprimidos: new Set(), ml: new Set(), ampolas: new Set() },
-  higiene:  { designacao: new Set(), qtdEmbalagem: new Set(), numEmbalagens: new Set() }
+  farmacia: { nome: new Set(), comprimidos: new Set(), ml: new Set(), ampolas: new Set(), tomas: new Set() },
+  higiene:  { designacao: new Set(), qtdEmbalagem: new Set(), numEmbalagens: new Set(), usoDia: new Set() }
 };
 
 // ===== AUTOCOMPLETE ENGINE =====
@@ -39,7 +39,6 @@ function criarAutocomplete(inputEl, getSugestoes) {
     dropdown.innerHTML = '';
     activeIndex = -1;
     if (items.length === 0) { dropdown.classList.remove('open'); return; }
-
     items.forEach((item, i) => {
       const li = document.createElement('li');
       li.className = 'ac-item';
@@ -97,36 +96,37 @@ function criarAutocomplete(inputEl, getSugestoes) {
 }
 
 function inicializarAutocompletes() {
-  criarAutocomplete(document.getElementById('med-nome'), () => sugestoes.farmacia.nome);
+  // Farmácia
+  criarAutocomplete(document.getElementById('med-nome'),        () => sugestoes.farmacia.nome);
   criarAutocomplete(document.getElementById('med-comprimidos'), () => sugestoes.farmacia.comprimidos);
-  criarAutocomplete(document.getElementById('med-ml'), () => sugestoes.farmacia.ml);
-  criarAutocomplete(document.getElementById('med-ampolas'), () => sugestoes.farmacia.ampolas);
-  criarAutocomplete(document.getElementById('hig-designacao'), () => sugestoes.higiene.designacao);
+  criarAutocomplete(document.getElementById('med-ml'),          () => sugestoes.farmacia.ml);
+  criarAutocomplete(document.getElementById('med-ampolas'),     () => sugestoes.farmacia.ampolas);
+  criarAutocomplete(document.getElementById('med-tomas'),       () => sugestoes.farmacia.tomas);
+  // Higiene
+  criarAutocomplete(document.getElementById('hig-designacao'),    () => sugestoes.higiene.designacao);
   criarAutocomplete(document.getElementById('hig-qtd-embalagem'), () => sugestoes.higiene.qtdEmbalagem);
-  criarAutocomplete(document.getElementById('hig-num-embalagens'), () => sugestoes.higiene.numEmbalagens);
+  criarAutocomplete(document.getElementById('hig-num-embalagens'),() => sugestoes.higiene.numEmbalagens);
+  criarAutocomplete(document.getElementById('hig-uso-dia'),       () => sugestoes.higiene.usoDia);
 }
 
 function atualizarSugestoesFarmacia(registos) {
-  sugestoes.farmacia.nome.clear();
-  sugestoes.farmacia.comprimidos.clear();
-  sugestoes.farmacia.ml.clear();
-  sugestoes.farmacia.ampolas.clear();
+  Object.values(sugestoes.farmacia).forEach(s => s.clear());
   registos.forEach(r => {
-    if (r.nome) sugestoes.farmacia.nome.add(r.nome);
-    if (r.comprimidos > 0) sugestoes.farmacia.comprimidos.add(String(r.comprimidos));
-    if (r.ml > 0) sugestoes.farmacia.ml.add(String(r.ml));
-    if (r.ampolas > 0) sugestoes.farmacia.ampolas.add(String(r.ampolas));
+    if (r.nome)                sugestoes.farmacia.nome.add(r.nome);
+    if (r.comprimidos > 0)     sugestoes.farmacia.comprimidos.add(String(r.comprimidos));
+    if (r.ml > 0)              sugestoes.farmacia.ml.add(String(r.ml));
+    if (r.ampolas > 0)         sugestoes.farmacia.ampolas.add(String(r.ampolas));
+    if (r.tomas > 0)           sugestoes.farmacia.tomas.add(String(r.tomas));
   });
 }
 
 function atualizarSugestoesHigiene(registos) {
-  sugestoes.higiene.designacao.clear();
-  sugestoes.higiene.qtdEmbalagem.clear();
-  sugestoes.higiene.numEmbalagens.clear();
+  Object.values(sugestoes.higiene).forEach(s => s.clear());
   registos.forEach(r => {
-    if (r.designacao) sugestoes.higiene.designacao.add(r.designacao);
-    if (r.qtdEmbalagem > 0) sugestoes.higiene.qtdEmbalagem.add(String(r.qtdEmbalagem));
-    if (r.numEmbalagens > 0) sugestoes.higiene.numEmbalagens.add(String(r.numEmbalagens));
+    if (r.designacao)          sugestoes.higiene.designacao.add(r.designacao);
+    if (r.qtdEmbalagem > 0)    sugestoes.higiene.qtdEmbalagem.add(String(r.qtdEmbalagem));
+    if (r.numEmbalagens > 0)   sugestoes.higiene.numEmbalagens.add(String(r.numEmbalagens));
+    if (r.usoDia > 0)          sugestoes.higiene.usoDia.add(String(r.usoDia));
   });
 }
 
@@ -162,15 +162,24 @@ document.getElementById('btn-limpar-higiene').addEventListener('click', limparFo
 // ===== FORMS =====
 document.getElementById('form-farmacia').addEventListener('submit', async function(e) {
   e.preventDefault();
-  const nome = document.getElementById('med-nome').value.trim();
+  const nome        = document.getElementById('med-nome').value.trim();
   const comprimidos = document.getElementById('med-comprimidos').value;
-  const ml = document.getElementById('med-ml').value;
-  const ampolas = document.getElementById('med-ampolas').value;
-  const data = document.getElementById('med-data').value;
+  const ml          = document.getElementById('med-ml').value;
+  const ampolas     = document.getElementById('med-ampolas').value;
+  const tomas       = document.getElementById('med-tomas').value;
+  const data        = document.getElementById('med-data').value;
   if (!nome) { showToast('Por favor, introduza o nome do medicamento.'); return; }
   if (!data) { showToast('Por favor, introduza a data do recibo.'); return; }
   try {
-    await addDoc(collection(db, "farmacia"), { nome, comprimidos: Number(comprimidos) || 0, ml: Number(ml) || 0, ampolas: Number(ampolas) || 0, data, timestamp: Date.now() });
+    await addDoc(collection(db, "farmacia"), {
+      nome,
+      comprimidos: Number(comprimidos) || 0,
+      ml:          Number(ml) || 0,
+      ampolas:     Number(ampolas) || 0,
+      tomas:       Number(tomas) || 0,
+      data,
+      timestamp: Date.now()
+    });
     limparFormFarmacia();
     showToast('✓ Medicamento guardado na nuvem!');
   } catch (error) {
@@ -180,14 +189,22 @@ document.getElementById('form-farmacia').addEventListener('submit', async functi
 
 document.getElementById('form-higiene').addEventListener('submit', async function(e) {
   e.preventDefault();
-  const designacao = document.getElementById('hig-designacao').value.trim();
-  const qtdEmbalagem = document.getElementById('hig-qtd-embalagem').value;
+  const designacao    = document.getElementById('hig-designacao').value.trim();
+  const qtdEmbalagem  = document.getElementById('hig-qtd-embalagem').value;
   const numEmbalagens = document.getElementById('hig-num-embalagens').value;
-  const data = document.getElementById('hig-data').value;
+  const usoDia        = document.getElementById('hig-uso-dia').value;
+  const data          = document.getElementById('hig-data').value;
   if (!designacao) { showToast('Por favor, introduza a designação.'); return; }
   if (!data) { showToast('Por favor, introduza a data.'); return; }
   try {
-    await addDoc(collection(db, "higiene"), { designacao, qtdEmbalagem: Number(qtdEmbalagem) || 0, numEmbalagens: Number(numEmbalagens) || 0, data, timestamp: Date.now() });
+    await addDoc(collection(db, "higiene"), {
+      designacao,
+      qtdEmbalagem:  Number(qtdEmbalagem) || 0,
+      numEmbalagens: Number(numEmbalagens) || 0,
+      usoDia:        Number(usoDia) || 0,
+      data,
+      timestamp: Date.now()
+    });
     limparFormHigiene();
     showToast('✓ Higiene guardado na nuvem!');
   } catch (error) {
@@ -207,9 +224,18 @@ function renderFarmacia() {
   list.innerHTML = farmaciaRegistos.map(r => {
     const tags = [];
     if (r.comprimidos > 0) tags.push(`${r.comprimidos} comp.`);
-    if (r.ml > 0) tags.push(`${r.ml} mL`);
-    if (r.ampolas > 0) tags.push(`${r.ampolas} amp.`);
-    return `<div class="record-card"><div class="record-main"><span class="record-name">💊 ${escapeHtml(r.nome)}</span><div class="record-meta">${tags.map(t => `<span class="record-tag">${t}</span>`).join('')}</div></div><span class="record-date">${formatarData(r.data)}</span><button class="btn-delete" data-id="${r.id}" data-type="farmacia">✕</button></div>`;
+    if (r.ml > 0)          tags.push(`${r.ml} mL`);
+    if (r.ampolas > 0)     tags.push(`${r.ampolas} amp.`);
+    if (r.tomas > 0)       tags.push(`${r.tomas}×/dia`);
+    return `
+    <div class="record-card">
+      <div class="record-main">
+        <span class="record-name">💊 ${escapeHtml(r.nome)}</span>
+        <div class="record-meta">${tags.map(t => `<span class="record-tag">${t}</span>`).join('')}</div>
+      </div>
+      <span class="record-date">${formatarData(r.data)}</span>
+      <button class="btn-delete" data-id="${r.id}" data-type="farmacia">✕</button>
+    </div>`;
   }).join('');
   adicionarEventosClique();
 }
@@ -224,7 +250,20 @@ function renderHigiene() {
   }
   list.innerHTML = higieneRegistos.map(r => {
     const totalUnidades = r.qtdEmbalagem * r.numEmbalagens;
-    return `<div class="record-card"><div class="record-main"><span class="record-name">🧴 ${escapeHtml(r.designacao)}</span><div class="record-meta"><span class="record-tag">${r.qtdEmbalagem} un/emb.</span><span class="record-tag">${r.numEmbalagens} emb.</span>${totalUnidades > 0 ? `<span class="record-tag">Total: ${totalUnidades} un.</span>` : ''}</div></div><span class="record-date">${formatarData(r.data)}</span><button class="btn-delete" data-id="${r.id}" data-type="higiene">✕</button></div>`;
+    const tags = [];
+    if (r.qtdEmbalagem > 0)  tags.push(`${r.qtdEmbalagem} un/emb.`);
+    if (r.numEmbalagens > 0) tags.push(`${r.numEmbalagens} emb.`);
+    if (totalUnidades > 0)   tags.push(`Total: ${totalUnidades} un.`);
+    if (r.usoDia > 0)        tags.push(`${r.usoDia}×/dia`);
+    return `
+    <div class="record-card">
+      <div class="record-main">
+        <span class="record-name">🧴 ${escapeHtml(r.designacao)}</span>
+        <div class="record-meta">${tags.map(t => `<span class="record-tag">${t}</span>`).join('')}</div>
+      </div>
+      <span class="record-date">${formatarData(r.data)}</span>
+      <button class="btn-delete" data-id="${r.id}" data-type="higiene">✕</button>
+    </div>`;
   }).join('');
   adicionarEventosClique();
 }
@@ -247,10 +286,10 @@ function adicionarEventosClique() {
 }
 
 function limparFormFarmacia() {
-  ['med-nome','med-comprimidos','med-ml','med-ampolas','med-data'].forEach(id => document.getElementById(id).value = '');
+  ['med-nome','med-comprimidos','med-ml','med-ampolas','med-tomas','med-data'].forEach(id => document.getElementById(id).value = '');
 }
 function limparFormHigiene() {
-  ['hig-designacao','hig-qtd-embalagem','hig-num-embalagens','hig-data'].forEach(id => document.getElementById(id).value = '');
+  ['hig-designacao','hig-qtd-embalagem','hig-num-embalagens','hig-uso-dia','hig-data'].forEach(id => document.getElementById(id).value = '');
 }
 function formatarData(str) {
   if (!str) return '—';
