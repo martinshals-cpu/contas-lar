@@ -66,18 +66,35 @@ function criarAutocomplete(inputEl, getSugestoes) {
     }
   }
 
+  function ordenar(lista) {
+    // Se todos os valores forem numéricos, ordena por número crescente; senão alfabético
+    const todosNumericos = lista.every(s => s !== '' && !isNaN(Number(s)));
+    if (todosNumericos) {
+      return lista.slice().sort((a, b) => Number(a) - Number(b));
+    }
+    return lista.slice().sort((a, b) => String(a).localeCompare(String(b), 'pt'));
+  }
+
   function filtrar(valor) {
     const lista = Array.from(getSugestoes());
     const termo = valor.trim().toLowerCase();
-    if (termo === '') return lista.slice(0, 8);
+    if (termo === '') {
+      // Mostra todos ordenados (sem limite)
+      return ordenar(lista);
+    }
+    // Com termo: filtra e ordena (starts-with primeiro, depois resto; sem limite)
     return lista
       .filter(s => String(s).toLowerCase().includes(termo))
       .sort((a, b) => {
         const ai = String(a).toLowerCase().startsWith(termo) ? 0 : 1;
         const bi = String(b).toLowerCase().startsWith(termo) ? 0 : 1;
-        return ai - bi || String(a).localeCompare(String(b));
-      })
-      .slice(0, 8);
+        if (ai !== bi) return ai - bi;
+        // dentro de cada grupo, mesma ordenação (numérica ou alfa)
+        const todosNumericos = !isNaN(Number(a)) && !isNaN(Number(b));
+        return todosNumericos
+          ? Number(a) - Number(b)
+          : String(a).localeCompare(String(b), 'pt');
+      });
   }
 
   inputEl.addEventListener('focus', () => renderDropdown(filtrar(inputEl.value)));
