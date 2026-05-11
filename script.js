@@ -496,34 +496,50 @@ function adicionarEventosClique() {
 }
 
 // ===== RELATÓRIOS MENSAIS =====
+let relatorioTab = 'farmacia';
+
+document.querySelectorAll('.report-tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.report-tab').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    relatorioTab = btn.dataset.rtab;
+  });
+});
+
 function gerarRelatorio() {
   const mes = parseInt(document.getElementById('rel-mes').value);
   const ano = parseInt(document.getElementById('rel-ano').value);
   if (!ano || ano < 2020) { showToast('Por favor, introduza um ano válido.'); return; }
 
-  const mesStr = String(mes).padStart(2, '0');
+  const mesStr  = String(mes).padStart(2, '0');
   const prefixo = `${ano}-${mesStr}`;
   const nomeMes = document.getElementById('rel-mes').options[mes - 1].text;
-
-  // Filter farmácia records for this month
-  const farmMes = farmaciaRegistos.filter(r => r.data && r.data.startsWith(prefixo));
-
-  // Build per-medication report
-  // Days in month
   const diasNoMes = new Date(ano, mes, 0).getDate();
+  const output  = document.getElementById('relatorio-output');
 
-  const output = document.getElementById('relatorio-output');
+  let html = '';
 
-  if (farmMes.length === 0) {
-    output.innerHTML = `
-      <div class="report-empty">
-        <span class="empty-icon">📊</span>
-        <p>Nenhum registo de farmácia encontrado para <strong>${nomeMes} ${ano}</strong>.</p>
-      </div>`;
+  if (relatorioTab === 'farmacia' || relatorioTab === 'ambos') {
+    html += gerarBlocoFarmacia(prefixo, nomeMes, ano, diasNoMes);
+  }
+  if (relatorioTab === 'higiene' || relatorioTab === 'ambos') {
+    html += gerarBlocoHigiene(prefixo, nomeMes, ano, diasNoMes);
+  }
+
+  if (!html) {
+    output.innerHTML = `<div class="report-empty"><span class="empty-icon">📊</span><p>Nenhum registo encontrado para <strong>${nomeMes} ${ano}</strong>.</p></div>`;
+    document.getElementById('btn-exportar-relatorio').style.display = 'none';
     return;
   }
 
-  // Group by medication name
+  output.innerHTML = html;
+  document.getElementById('btn-exportar-relatorio').style.display = 'inline-flex';
+}
+
+function gerarBlocoFarmacia(prefixo, nomeMes, ano, diasNoMes) {
+  const farmMes = farmaciaRegistos.filter(r => r.data && r.data.startsWith(prefixo));
+  if (farmMes.length === 0) return `<div class="report-empty"><span class="empty-icon">💊</span><p>Nenhum registo de farmácia para <strong>${nomeMes} ${ano}</strong>.</p></div>`;
+
   const grupos = {};
   farmMes.forEach(r => {
     const key = r.nome.toLowerCase().trim();
@@ -531,87 +547,102 @@ function gerarRelatorio() {
     grupos[key].registos.push(r);
   });
 
-  let reportHtml = `
-    <div class="report-header-block">
-      <h2 class="report-month-title">📊 ${nomeMes} ${ano}</h2>
-      <p class="report-subtitle">${diasNoMes} dias no mês · ${farmMes.length} registo(s) de farmácia</p>
+  let html = `
+    <div class="report-header-block report-header-farm">
+      <h2 class="report-month-title">💊 Farmácia — ${nomeMes} ${ano}</h2>
+      <p class="report-subtitle">${diasNoMes} dias no mês · ${farmMes.length} registo(s)</p>
     </div>`;
 
   Object.values(grupos).forEach(grupo => {
-    // Sum totals across all records for this med
-    let totalComp = 0, totalAmp = 0, totalMl = 0;
-    let tomasMax = 0, duracaoMax = 0;
-
+    let totalComp = 0, totalAmp = 0, totalMl = 0, tomasMax = 0, duracaoMax = 0;
     grupo.registos.forEach(r => {
       totalComp += r.comprimidos || 0;
-      totalAmp  += r.ampolas || 0;
-      totalMl   += r.ml || 0;
-      if (r.tomas > tomasMax) tomasMax = r.tomas;
+      totalAmp  += r.ampolas    || 0;
+      totalMl   += r.ml         || 0;
+      if (r.tomas   > tomasMax)   tomasMax   = r.tomas;
       if (r.duracao > duracaoMax) duracaoMax = r.duracao;
     });
+    const diasTrat = duracaoMax > 0 ? Math.min(duracaoMax, diasNoMes) : diasNoMes;
+    const consComp = tomasMax > 0 ? Math.min(tomasMax * diasTrat, totalComp) : 0;
+    const consAmp  = tomasMax > 0 ? Math.min(tomasMax * diasTrat, totalAmp)  : 0;
+    const nConsComp = Math.max(0, totalComp - consComp);
+    const nConsAmp  = Math.max(0, totalAmp  - consAmp);
 
-    // Effective treatment days = min(duracao, diasNoMes)
-    const diasTratamento = duracaoMax > 0 ? Math.min(duracaoMax, diasNoMes) : diasNoMes;
-
-    // Consumed = tomas/dia × dias de tratamento
-    // Each "toma" = 1 comprimido or 1 ampola (simplified model)
-    const consumidosComp = tomasMax > 0 ? Math.min(tomasMax * diasTratamento, totalComp) : 0;
-    const consumidosAmp  = tomasMax > 0 ? Math.min(tomasMax * diasTratamento, totalAmp) : 0;
-
-    const naoConsumidosComp = Math.max(0, totalComp - consumidosComp);
-    const naoConsumidosAmp  = Math.max(0, totalAmp - consumidosAmp);
-
-    const hasComp = totalComp > 0;
-    const hasAmp  = totalAmp > 0;
-
-    reportHtml += `
+    html += `
       <div class="report-card">
         <div class="report-card-title">💊 ${escapeHtml(grupo.nome)}</div>
         <div class="report-card-body">
           <div class="report-stats-grid">
-            ${hasComp ? `
-            <div class="report-stat">
-              <span class="stat-label">Comprimidos recebidos</span>
-              <span class="stat-value">${totalComp}</span>
-            </div>
-            <div class="report-stat">
-              <span class="stat-label">Comprimidos consumidos</span>
-              <span class="stat-value consumed">${consumidosComp}</span>
-            </div>
-            <div class="report-stat ${naoConsumidosComp > 0 ? 'highlight' : ''}">
-              <span class="stat-label">Comprimidos não consumidos</span>
-              <span class="stat-value leftover">${naoConsumidosComp}</span>
-            </div>` : ''}
-            ${hasAmp ? `
-            <div class="report-stat">
-              <span class="stat-label">Ampolas recebidas</span>
-              <span class="stat-value">${totalAmp}</span>
-            </div>
-            <div class="report-stat">
-              <span class="stat-label">Ampolas consumidas</span>
-              <span class="stat-value consumed">${consumidosAmp}</span>
-            </div>
-            <div class="report-stat ${naoConsumidosAmp > 0 ? 'highlight' : ''}">
-              <span class="stat-label">Ampolas não consumidas</span>
-              <span class="stat-value leftover">${naoConsumidosAmp}</span>
-            </div>` : ''}
-            ${totalMl > 0 ? `
-            <div class="report-stat">
-              <span class="stat-label">Quantidade total (mL)</span>
-              <span class="stat-value">${totalMl} mL</span>
-            </div>` : ''}
+            ${totalComp > 0 ? `
+            <div class="report-stat"><span class="stat-label">Comprimidos recebidos</span><span class="stat-value">${totalComp}</span></div>
+            <div class="report-stat"><span class="stat-label">Comprimidos consumidos</span><span class="stat-value consumed">${consComp}</span></div>
+            <div class="report-stat ${nConsComp > 0 ? 'highlight' : ''}"><span class="stat-label">Não consumidos</span><span class="stat-value leftover">${nConsComp}</span></div>` : ''}
+            ${totalAmp > 0 ? `
+            <div class="report-stat"><span class="stat-label">Ampolas recebidas</span><span class="stat-value">${totalAmp}</span></div>
+            <div class="report-stat"><span class="stat-label">Ampolas consumidas</span><span class="stat-value consumed">${consAmp}</span></div>
+            <div class="report-stat ${nConsAmp > 0 ? 'highlight' : ''}"><span class="stat-label">Não consumidas</span><span class="stat-value leftover">${nConsAmp}</span></div>` : ''}
+            ${totalMl > 0 ? `<div class="report-stat"><span class="stat-label">Total (mL)</span><span class="stat-value">${totalMl} mL</span></div>` : ''}
           </div>
           <div class="report-detail-line">
             <span>Tomas/dia: <strong>${tomasMax || '—'}</strong></span>
-            <span>Duração do tratamento: <strong>${duracaoMax > 0 ? duracaoMax + ' dias' : '—'}</strong></span>
-            <span>Dias considerados: <strong>${diasTratamento}</strong></span>
+            <span>Duração: <strong>${duracaoMax > 0 ? duracaoMax + ' dias' : '—'}</strong></span>
+            <span>Dias considerados: <strong>${diasTrat}</strong></span>
           </div>
-          ${duracaoMax > 0 && tomasMax > 0 ? buildProgressBar(consumidosComp || consumidosAmp, totalComp || totalAmp) : ''}
+          ${duracaoMax > 0 && tomasMax > 0 ? buildProgressBar(consComp || consAmp, totalComp || totalAmp) : ''}
         </div>
       </div>`;
   });
+  return html;
+}
 
-  output.innerHTML = reportHtml;
+function gerarBlocoHigiene(prefixo, nomeMes, ano, diasNoMes) {
+  const higMes = higieneRegistos.filter(r => r.data && r.data.startsWith(prefixo));
+  if (higMes.length === 0) return `<div class="report-empty"><span class="empty-icon">🧴</span><p>Nenhum registo de higiene para <strong>${nomeMes} ${ano}</strong>.</p></div>`;
+
+  const grupos = {};
+  higMes.forEach(r => {
+    const key = r.designacao.toLowerCase().trim();
+    if (!grupos[key]) grupos[key] = { designacao: r.designacao, registos: [] };
+    grupos[key].registos.push(r);
+  });
+
+  let html = `
+    <div class="report-header-block report-header-hig">
+      <h2 class="report-month-title">🧴 Higiene — ${nomeMes} ${ano}</h2>
+      <p class="report-subtitle">${diasNoMes} dias no mês · ${higMes.length} registo(s)</p>
+    </div>`;
+
+  Object.values(grupos).forEach(grupo => {
+    let totalUnidades = 0, usoDiaMax = 0;
+    grupo.registos.forEach(r => {
+      totalUnidades += (r.qtdEmbalagem || 0) * (r.numEmbalagens || 0);
+      if (r.usoDia > usoDiaMax) usoDiaMax = r.usoDia;
+    });
+
+    // Consumed = uso/dia × diasNoMes
+    const consumidas   = usoDiaMax > 0 ? Math.min(usoDiaMax * diasNoMes, totalUnidades) : 0;
+    const nConsumidas  = Math.max(0, totalUnidades - consumidas);
+    const pct = totalUnidades > 0 ? Math.min(100, Math.round((consumidas / totalUnidades) * 100)) : 0;
+
+    html += `
+      <div class="report-card">
+        <div class="report-card-title report-card-title-hig">🧴 ${escapeHtml(grupo.designacao)}</div>
+        <div class="report-card-body">
+          <div class="report-stats-grid">
+            <div class="report-stat"><span class="stat-label">Unidades recebidas</span><span class="stat-value">${totalUnidades}</span></div>
+            <div class="report-stat"><span class="stat-label">Unidades consumidas</span><span class="stat-value consumed">${consumidas}</span></div>
+            <div class="report-stat ${nConsumidas > 0 ? 'highlight' : ''}"><span class="stat-label">Não consumidas</span><span class="stat-value leftover">${nConsumidas}</span></div>
+          </div>
+          <div class="report-detail-line">
+            <span>Uso/dia: <strong>${usoDiaMax || '—'}</strong></span>
+            <span>Dias no mês: <strong>${diasNoMes}</strong></span>
+            <span>Stock estimado restante: <strong>${nConsumidas} un.</strong></span>
+          </div>
+          ${usoDiaMax > 0 ? buildProgressBar(consumidas, totalUnidades) : ''}
+        </div>
+      </div>`;
+  });
+  return html;
 }
 
 function buildProgressBar(consumed, total) {
@@ -619,11 +650,72 @@ function buildProgressBar(consumed, total) {
   const pct = Math.min(100, Math.round((consumed / total) * 100));
   return `
     <div class="report-progress-wrap">
-      <div class="report-progress-bar">
-        <div class="report-progress-fill" style="width:${pct}%"></div>
-      </div>
+      <div class="report-progress-bar"><div class="report-progress-fill" style="width:${pct}%"></div></div>
       <span class="report-progress-label">${pct}% consumido</span>
     </div>`;
+}
+
+// ===== EXPORTAR PDF =====
+document.getElementById('btn-exportar-relatorio').addEventListener('click', exportarPDF);
+
+function exportarPDF() {
+  const mes     = parseInt(document.getElementById('rel-mes').value);
+  const ano     = parseInt(document.getElementById('rel-ano').value);
+  const nomeMes = document.getElementById('rel-mes').options[mes - 1].text;
+  const output  = document.getElementById('relatorio-output');
+
+  const printHtml = `<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8"/>
+<title>Relatório ${nomeMes} ${ano}</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', Arial, sans-serif; background: #fff; color: #1e1e2e; font-size: 13px; line-height: 1.5; padding: 32px; }
+  h1 { font-size: 22px; margin-bottom: 4px; }
+  .meta { color: #7a7a8c; font-size: 12px; margin-bottom: 24px; }
+  .report-header-block { background: #c8602a; color: #fff; border-radius: 10px; padding: 18px 24px; margin-bottom: 16px; }
+  .report-header-hig   { background: #0ea5e9; }
+  .report-month-title  { font-size: 20px; font-weight: 700; margin-bottom: 2px; }
+  .report-subtitle     { font-size: 12px; opacity: 0.85; }
+  .report-card { border: 1px solid #e4e0d8; border-radius: 10px; margin-bottom: 16px; overflow: hidden; break-inside: avoid; }
+  .report-card-title   { background: #f5e8e0; color: #c8602a; font-weight: 700; padding: 10px 18px; font-size: 13px; }
+  .report-card-title-hig { background: #e0f2fe; color: #0369a1; }
+  .report-card-body    { padding: 16px 18px; }
+  .report-stats-grid   { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 12px; }
+  .report-stat { background: #f8f8f8; border: 1px solid #e4e0d8; border-radius: 6px; padding: 10px 12px; }
+  .report-stat.highlight { background: #fef3c7; border-color: #f59e0b; }
+  .stat-label { font-size: 10px; font-weight: 600; color: #7a7a8c; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 2px; }
+  .stat-value { font-size: 20px; font-weight: 700; color: #1e1e2e; display: block; }
+  .stat-value.consumed { color: #22c55e; }
+  .stat-value.leftover { color: #f59e0b; }
+  .report-detail-line  { display: flex; gap: 20px; font-size: 11px; color: #7a7a8c; margin-bottom: 10px; flex-wrap: wrap; }
+  .report-detail-line strong { color: #1e1e2e; }
+  .report-progress-wrap { display: flex; align-items: center; gap: 10px; }
+  .report-progress-bar  { flex: 1; background: #e4e0d8; border-radius: 99px; height: 7px; overflow: hidden; }
+  .report-progress-fill { height: 100%; background: #22c55e; border-radius: 99px; }
+  .report-progress-label { font-size: 11px; font-weight: 600; color: #7a7a8c; white-space: nowrap; }
+  .report-empty { text-align: center; padding: 32px; color: #7a7a8c; }
+  .footer { margin-top: 32px; font-size: 11px; color: #7a7a8c; border-top: 1px solid #e4e0d8; padding-top: 12px; text-align: right; }
+  @media print { body { padding: 16px; } }
+</style>
+</head>
+<body>
+  <h1>Relatório Mensal — ${nomeMes} ${ano}</h1>
+  <p class="meta">Gerado em ${new Date().toLocaleDateString('pt-PT', { day:'2-digit', month:'long', year:'numeric' })} · Gestão de Saúde AMHM</p>
+  ${output.innerHTML}
+  <div class="footer">Registos — Gestão de Saúde · BY AMHM</div>
+</body>
+</html>`;
+
+  const blob = new Blob([printHtml], { type: 'text/html;charset=utf-8' });
+  const url  = URL.createObjectURL(blob);
+  const win  = window.open(url, '_blank');
+  if (win) {
+    win.addEventListener('load', () => {
+      setTimeout(() => { win.print(); }, 400);
+    });
+  }
 }
 
 document.getElementById('btn-gerar-relatorio').addEventListener('click', gerarRelatorio);
