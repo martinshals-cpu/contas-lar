@@ -114,8 +114,21 @@ function criarAutocomplete(inputEl, getSugestoes) {
   });
 }
 
+function preencherTomasDoMedicamento(nome) {
+  if (!nome) return;
+  const nomeLower = nome.trim().toLowerCase();
+  // farmaciaRegistos já está ordenado por data desc — o primeiro match é o mais recente
+  const registo = farmaciaRegistos.find(r => r.nome && r.nome.trim().toLowerCase() === nomeLower);
+  if (registo && registo.tomas > 0) {
+    const tomasEl = document.getElementById('med-tomas');
+    // Só preenche se o campo estiver vazio (não sobrescreve edição manual)
+    if (!tomasEl.value) tomasEl.value = registo.tomas;
+  }
+}
+
 function inicializarAutocompletes() {
-  criarAutocomplete(document.getElementById('med-nome'),        () => sugestoes.farmacia.nome);
+  const nomeEl = document.getElementById('med-nome');
+  criarAutocomplete(nomeEl,                                     () => sugestoes.farmacia.nome);
   criarAutocomplete(document.getElementById('med-comprimidos'), () => sugestoes.farmacia.comprimidos);
   criarAutocomplete(document.getElementById('med-ml'),          () => sugestoes.farmacia.ml);
   criarAutocomplete(document.getElementById('med-ampolas'),     () => sugestoes.farmacia.ampolas);
@@ -125,6 +138,11 @@ function inicializarAutocompletes() {
   criarAutocomplete(document.getElementById('hig-qtd-embalagem'), () => sugestoes.higiene.qtdEmbalagem);
   criarAutocomplete(document.getElementById('hig-num-embalagens'),() => sugestoes.higiene.numEmbalagens);
   criarAutocomplete(document.getElementById('hig-uso-dia'),       () => sugestoes.higiene.usoDia);
+
+  // Preencher tomas ao sair do campo nome (blur) ou ao selecionar via autocomplete
+  nomeEl.addEventListener('blur', () => {
+    setTimeout(() => preencherTomasDoMedicamento(nomeEl.value), 120);
+  });
 }
 
 function atualizarSugestoesFarmacia(registos) {
