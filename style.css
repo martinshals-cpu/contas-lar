@@ -594,7 +594,7 @@ input:focus, select:focus {
   bottom: 30px;
   right: 30px;
   background: var(--text-main);
-  color: #fff;
+  color: #38bdf8;
   padding: 13px 22px;
   border-radius: 10px;
   font-size: 14px;
