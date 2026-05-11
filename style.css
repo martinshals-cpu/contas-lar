@@ -713,3 +713,61 @@ input:focus, select:focus {
   .report-stats-grid { grid-template-columns: 1fr; }
   .modal { border-radius: var(--radius-sm); }
 }
+
+/* ===== MONTH SELECTOR GRID ===== */
+.month-selector-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+  gap: 10px;
+  margin-top: 8px;
+  background: var(--bg);
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--border);
+}
+
+.month-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-main);
+  cursor: pointer;
+  padding: 6px 8px;
+  border-radius: 6px;
+  transition: background 0.2s;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.month-checkbox:hover {
+  background: var(--border);
+}
+
+.month-checkbox input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: var(--primary);
+}
+
+/* Estilos adicionais para o resumo total */
+.report-summary-total {
+  background: var(--card-bg);
+  border: 2px solid var(--primary);
+  border-radius: var(--radius);
+  padding: 20px;
+  margin-bottom: 24px;
+  box-shadow: var(--shadow);
+}
+
+.summary-title {
+  font-family: var(--font-display);
+  font-size: 20px;
+  color: var(--primary);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
