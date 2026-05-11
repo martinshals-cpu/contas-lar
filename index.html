@@ -203,7 +203,15 @@
               <input type="number" id="rel-ano" min="2020" max="2099" placeholder="2025" />
             </div>
           </div>
+
+          <div class="report-tabs">
+            <button class="report-tab active" data-rtab="farmacia">💊 Farmácia</button>
+            <button class="report-tab" data-rtab="higiene">🧴 Higiene</button>
+            <button class="report-tab" data-rtab="ambos">📋 Ambos</button>
+          </div>
+
           <div class="form-actions">
+            <button type="button" id="btn-exportar-relatorio" class="btn-secondary" style="display:none">⬇ Exportar PDF</button>
             <button type="button" id="btn-gerar-relatorio" class="btn-primary">Gerar Relatório</button>
           </div>
         </div>
