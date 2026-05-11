@@ -26,10 +26,18 @@
           <span class="nav-icon">🧴</span>
           <span class="nav-label">Higiene</span>
         </button>
+        <button class="nav-item" data-section="todos-registos">
+          <span class="nav-icon">📋</span>
+          <span class="nav-label">Todos os Registos</span>
+        </button>
+        <button class="nav-item" data-section="relatorios">
+          <span class="nav-icon">📊</span>
+          <span class="nav-label">Relatórios</span>
+        </button>
       </nav>
 
       <div class="sidebar-footer">
-        <span>v1.0</span>
+        <span>v2.0</span>
       </div>
     </aside>
 
@@ -39,6 +47,7 @@
         <span class="sig-text">BY <span class="sig-name">AMHM</span></span>
       </div>
 
+      <!-- ===== FARMÁCIA ===== -->
       <section class="section active" id="section-farmacia">
         <div class="section-header">
           <h1 class="section-title">Farmácia</h1>
@@ -68,6 +77,10 @@
               <input type="number" id="med-tomas" min="0" placeholder="0" />
             </div>
             <div class="form-group">
+              <label for="med-duracao">Duração do Tratamento (dias)</label>
+              <input type="number" id="med-duracao" min="0" placeholder="0" />
+            </div>
+            <div class="form-group">
               <label for="med-data">Data do Recibo</label>
               <input type="date" id="med-data" />
             </div>
@@ -90,6 +103,7 @@
         </div>
       </section>
 
+      <!-- ===== HIGIENE ===== -->
       <section class="section" id="section-higiene">
         <div class="section-header">
           <h1 class="section-title">Higiene</h1>
@@ -137,7 +151,82 @@
         </div>
       </section>
 
+      <!-- ===== TODOS OS REGISTOS ===== -->
+      <section class="section" id="section-todos-registos">
+        <div class="section-header">
+          <h1 class="section-title">Todos os Registos</h1>
+          <p class="section-subtitle">Consulta e edição de todos os registos</p>
+        </div>
+
+        <div class="filter-bar">
+          <button class="filter-btn active" data-filter="todos">Todos</button>
+          <button class="filter-btn" data-filter="farmacia">💊 Farmácia</button>
+          <button class="filter-btn" data-filter="higiene">🧴 Higiene</button>
+        </div>
+
+        <div class="records-list" id="todos-list">
+          <div class="empty-state">
+            <span class="empty-icon">📋</span>
+            <p>Nenhum registo encontrado.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== RELATÓRIOS ===== -->
+      <section class="section" id="section-relatorios">
+        <div class="section-header">
+          <h1 class="section-title">Relatórios Mensais</h1>
+          <p class="section-subtitle">Análise de consumo e stock não utilizado</p>
+        </div>
+
+        <div class="report-controls form-card">
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="rel-mes">Mês</label>
+              <select id="rel-mes">
+                <option value="1">Janeiro</option>
+                <option value="2">Fevereiro</option>
+                <option value="3">Março</option>
+                <option value="4">Abril</option>
+                <option value="5">Maio</option>
+                <option value="6">Junho</option>
+                <option value="7">Julho</option>
+                <option value="8">Agosto</option>
+                <option value="9">Setembro</option>
+                <option value="10">Outubro</option>
+                <option value="11">Novembro</option>
+                <option value="12">Dezembro</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="rel-ano">Ano</label>
+              <input type="number" id="rel-ano" min="2020" max="2099" placeholder="2025" />
+            </div>
+          </div>
+          <div class="form-actions">
+            <button type="button" id="btn-gerar-relatorio" class="btn-primary">Gerar Relatório</button>
+          </div>
+        </div>
+
+        <div id="relatorio-output"></div>
+      </section>
+
     </main>
+  </div>
+
+  <!-- Modal de edição -->
+  <div class="modal-overlay" id="modal-overlay">
+    <div class="modal" id="modal-edit">
+      <div class="modal-header">
+        <h3 class="modal-title" id="modal-title">Editar Registo</h3>
+        <button class="modal-close" id="modal-close">✕</button>
+      </div>
+      <div class="modal-body" id="modal-body"></div>
+      <div class="modal-footer">
+        <button class="btn-secondary" id="modal-cancel">Cancelar</button>
+        <button class="btn-primary" id="modal-save">Guardar Alterações</button>
+      </div>
+    </div>
   </div>
 
   <div class="toast" id="toast"></div>
